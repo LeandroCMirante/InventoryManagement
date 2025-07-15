@@ -1,100 +1,94 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-export interface Product {
-  productId: string;
-  name: string;
-  price: number;
-  rating?: number;
-  stockQuantity: number;
-}
+// --- INTERFACES BASED ON THE NEW SCHEMA ---
 
-export interface NewProduct {
-  name: string;
-  price: number;
-  rating?: number;
-  stockQuantity: number;
-}
-
-export interface SalesSummary {
-  salesSummaryId: string;
-  totalValue: number;
-  changePercentage?: number;
-  date: string;
-}
-
-export interface PurchaseSummary {
-  purchaseSummaryId: string;
-  totalPurchased: number;
-  changePercentage?: number;
-  date: string;
-}
-
-export interface ExpenseSummary {
-  expenseSummarId: string;
-  totalExpenses: number;
-  date: string;
-}
-
-export interface ExpenseByCategorySummary {
-  expenseByCategorySummaryId: string;
-  category: string;
-  amount: string;
-  date: string;
-}
-
-export interface DashboardMetrics {
-  popularProducts: Product[];
-  salesSummary: SalesSummary[];
-  purchaseSummary: PurchaseSummary[];
-  expenseSummary: ExpenseSummary[];
-  expenseByCategorySummary: ExpenseByCategorySummary[];
-}
-
+// Note: These interfaces should ideally match your Prisma models.
 export interface User {
-  userId: string;
+  id: string;
   name: string;
   email: string;
+  role: string;
 }
 
+export interface Product {
+  id: string;
+  name: string;
+  description?: string;
+  quantity: number;
+  salePrice: number;
+}
+
+// Type for the data sent when creating a product
+export type NewProductData = Omit<Product, "id">;
+
+// Type for the data received after a successful login
+export interface AuthResponse {
+  token: string;
+  user: User;
+}
+
+// --- API DEFINITION ---
+
 export const api = createApi({
-  baseQuery: fetchBaseQuery({ baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL }),
+  // Use your environment variable for the base URL
+  baseQuery: fetchBaseQuery({
+    baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
+    // This function adds the auth token to every request if it exists
+    prepareHeaders: (headers, { getState }) => {
+      const token = (getState() as any).auth.token; // Adjust to your RootState type
+      if (token) {
+        headers.set("authorization", `Bearer ${token}`);
+      }
+      return headers;
+    },
+  }),
   reducerPath: "api",
-  tagTypes: ["DashboardMetrics", "Products", "Users", "Expenses"],
+  tagTypes: ["User", "Product", "Sale", "Purchase", "Expense"], // Updated tags
+
   endpoints: (build) => ({
-    getDashboardMetrics: build.query<DashboardMetrics, void>({
-      query: () => "/dashboard",
-      providesTags: ["DashboardMetrics"],
-    }),
-    getProducts: build.query<Product[], string | void>({
-      query: (search) => ({
-        url: "/products",
-        params: search ? { search } : {},
+    // --- AUTH ENDPOINTS ---
+    login: build.mutation<AuthResponse, any>({
+      query: (credentials) => ({
+        url: "/auth/login",
+        method: "POST",
+        body: credentials,
       }),
-      providesTags: ["Products"],
     }),
-    createProduct: build.mutation<Product, NewProduct>({
+    register: build.mutation<User, any>({
+      query: (userInfo) => ({
+        url: "/auth/register",
+        method: "POST",
+        body: userInfo,
+      }),
+    }),
+
+    // --- PRODUCT ENDPOINTS (Example) ---
+    getProducts: build.query<Product[], void>({
+      query: () => "/products",
+      providesTags: ["Product"],
+    }),
+    createProduct: build.mutation<Product, NewProductData>({
       query: (newProduct) => ({
         url: "/products",
         method: "POST",
         body: newProduct,
       }),
-      invalidatesTags: ["Products"],
+      invalidatesTags: ["Product"],
     }),
-    getUsers: build.query<User[], void>({
-      query: () => "/users",
-      providesTags: ["Users"],
-    }),
-    getExpensesByCategory: build.query<ExpenseByCategorySummary[], void>({
-      query: () => "/expenses",
-      providesTags: ["Expenses"],
-    }),
+
+    // --- DASHBOARD ENDPOINT (Refactored) ---
+    // The dashboard now fetches data from multiple, real endpoints.
+    // This can be handled by calling multiple hooks on the dashboard page
+    // or by creating a dedicated endpoint on your backend that gathers all the data.
+    // For now, we assume the page will call the hooks it needs.
+    // getDashboardMetrics has been removed as it's based on the old schema.
   }),
 });
 
+// Export the auto-generated hooks
 export const {
-  useGetDashboardMetricsQuery,
+  useLoginMutation,
+  useRegisterMutation,
   useGetProductsQuery,
   useCreateProductMutation,
-  useGetUsersQuery,
-  useGetExpensesByCategoryQuery,
 } = api;

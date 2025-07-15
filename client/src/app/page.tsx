@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Dashboard from "@/app/dashboard/page";
 
 // This is the main entry point for the Next.js application.
