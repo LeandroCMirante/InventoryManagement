@@ -3,7 +3,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 generator erd {
@@ -23,47 +22,59 @@ model User {
   id        String    @id @default(cuid())
   email     String    @unique
   name      String
-  password  String    // Lembre-se de armazenar um hash, não a senha em texto plano
+  password  String
   role      Role      @default(USER)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
   // Relations
-  products          Product[]
-  sales             Sale[]
-  purchases         Purchase[]
+  products   Product[]
+  sales      Sale[]
+  purchases  Purchase[]
   expenseCategories ExpenseCategory[]
   expenses          Expense[]
 }
 
 model Product {
-  id              String         @id @default(cuid())
-  name            String
-  description     String?
-  sku             String?
-  quantity        Int            @default(0)
-  purchasePrice   Decimal
-  salePrice       Decimal
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  deletedAt       DateTime?      // Para Soft Deletes
+  id            String    @id @default(cuid())
+  name          String    // Ex: "Suco de Fruta"
+  description   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
 
   // Relations
-  user            User           @relation(fields: [userId], references: [id])
-  userId          String
-  saleItems       SaleItem[]
-  purchaseItems   PurchaseItem[]
-
-  @@unique([userId, sku])
+  user          User           @relation(fields: [userId], references: [id])
+  userId        String
+  variants      ProductVariant[] // Um produto tem muitas variações
 }
 
+// A Variação é o item real que tem estoque e é vendido.
+model ProductVariant {
+  id            String    @id @default(cuid())
+  name          String    // Ex: "Sabor Laranja", "Tamanho 500ml"
+  salePrice     Decimal   // O preço de venda da variação
+  quantity      Int       @default(0) // Estoque desta variação específica
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  // Relations
+  product       Product        @relation(fields: [productId], references: [id])
+  productId     String
+  saleItems     SaleItem[]
+  purchaseItems PurchaseItem[]
+}
+
+
+// A Venda representa a SAÍDA de produtos do estoque.
 model Sale {
   id          String     @id @default(cuid())
   saleDate    DateTime   @default(now())
   totalAmount Decimal
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
-  deletedAt   DateTime?  // Para Soft Deletes
+  deletedAt   DateTime?
 
   // Relations
   user        User       @relation(fields: [userId], references: [id])
@@ -74,23 +85,25 @@ model Sale {
 model SaleItem {
   id          String   @id @default(cuid())
   quantity    Int
-  priceAtSale Decimal
+  priceAtSale Decimal // Preço de venda no momento da transação
 
   // Relations
   sale        Sale     @relation(fields: [saleId], references: [id])
   saleId      String
-  product     Product  @relation(fields: [productId], references: [id])
-  productId   String
+  variant     ProductVariant  @relation(fields: [variantId], references: [id]) // Aponta para a Variação
+  variantId   String
 }
 
+// A Compra representa a ENTRADA de produtos no estoque.
 model Purchase {
   id           String         @id @default(cuid())
   purchaseDate DateTime       @default(now())
-  totalCost    Decimal
   supplier     String?
+  shippingCost Decimal        @default(0) // Custo do frete para esta remessa
+  totalCost    Decimal        // Custo total (soma dos itens + frete)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
-  deletedAt    DateTime?      // Para Soft Deletes
+  deletedAt    DateTime?
 
   // Relations
   user         User           @relation(fields: [userId], references: [id])
@@ -101,13 +114,13 @@ model Purchase {
 model PurchaseItem {
   id             String   @id @default(cuid())
   quantity       Int
-  costAtPurchase Decimal
+  costAtPurchase Decimal  // O preço de CUSTO da variação nesta compra
 
   // Relations
   purchase     Purchase @relation(fields: [purchaseId], references: [id])
   purchaseId   String
-  product      Product  @relation(fields: [productId], references: [id])
-  productId    String
+  variant      ProductVariant  @relation(fields: [variantId], references: [id]) // Aponta para a Variação
+  variantId    String
 }
 
 model ExpenseCategory {
@@ -115,7 +128,7 @@ model ExpenseCategory {
   name      String
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  deletedAt DateTime? // Para Soft Deletes
+  deletedAt DateTime?
 
   // Relations
   user      User      @relation(fields: [userId], references: [id])
@@ -132,7 +145,7 @@ model Expense {
   date        DateTime
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
-  deletedAt   DateTime?       // Para Soft Deletes
+  deletedAt   DateTime?
 
   // Relations
   user        User            @relation(fields: [userId], references: [id])
@@ -140,7 +153,6 @@ model Expense {
   category    ExpenseCategory @relation(fields: [categoryId], references: [id])
   categoryId  String
 }
-
 
 // --- ENUMS ---
 

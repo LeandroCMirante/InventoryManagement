@@ -1,17 +1,24 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../lib/prisma";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
-const prisma = new PrismaClient();
-
+// --- Registar um novo utilizador ---
 export const registerUser = async (req: Request, res: Response) => {
-  const { name, email, poassword } = req.body;
-
-  const salt = await bcrypt.genSalt(10);
-  const hashedPassword = await bcrypt.hash(poassword, salt);
-
   try {
+    const { name, email, password } = req.body;
+
+    // 1. Verificar se o utilizador já existe
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ error: "O e-mail já está em uso." });
+    }
+
+    // 2. Encriptar a senha por segurança
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // 3. Criar o utilizador na base de dados
     const user = await prisma.user.create({
       data: {
         name,
@@ -19,41 +26,61 @@ export const registerUser = async (req: Request, res: Response) => {
         password: hashedPassword,
       },
     });
-    res
-      .status(201)
-      .json({ message: "Usuário criado com sucesso", userId: user.id });
+
+    // Não enviar a senha de volta, nem mesmo o hash
+    const { password: _, ...userWithoutPassword } = user;
+
+    res.status(201).json({
+      message: "Utilizador criado com sucesso!",
+      user: userWithoutPassword,
+    });
   } catch (error) {
-    res.status(400).json({ error: "Não foi possível criar o usuário" });
+    console.error("Erro no registo:", error);
+    res.status(500).json({ error: "Falha ao registar o utilizador." });
   }
 };
 
+// --- Fazer login de um utilizador existente ---
 export const loginUser = async (req: Request, res: Response) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-  // 1. Encontrar o usuário pelo email
-  const user = await prisma.user.findUnique({ where: { email } });
+    // 1. Encontrar o utilizador na base de dados pelo e-mail
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
 
-  if (!user) {
-    return res.status(404).json({ error: "Usuário não encontrado." });
+    // Se o utilizador não for encontrado, as credenciais são inválidas
+    if (!user) {
+      return res.status(401).json({ error: "Credenciais inválidas." });
+    }
+
+    // 2. Comparar a senha fornecida com o hash guardado na base de dados
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+
+    // Se as senhas não corresponderem, as credenciais são inválidas
+    if (!isPasswordCorrect) {
+      return res.status(401).json({ error: "Credenciais inválidas." });
+    }
+
+    // 3. Gerar o Token JWT
+    // O token contém informações (payload) que podem ser usadas no frontend e verificadas no backend.
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, role: user.role },
+      process.env.JWT_SECRET as string,
+      { expiresIn: "24h" } // O token expira em 24 horas
+    );
+
+    // 4. Enviar a resposta com o token e os dados do utilizador (sem a senha)
+    const { password: _, ...userWithoutPassword } = user;
+
+    res.status(200).json({
+      message: "Login bem-sucedido!",
+      token: token,
+      user: userWithoutPassword,
+    });
+  } catch (error) {
+    console.error("Erro no login:", error);
+    res.status(500).json({ error: "Falha ao fazer login." });
   }
-
-  // 2. Comparar a senha fornecida com o hash salvo no banco
-  const isPasswordCorrect = await bcrypt.compare(password, user.password);
-
-  if (!isPasswordCorrect) {
-    return res.status(401).json({ error: "Senha incorreta." });
-  }
-
-  // 3. Gerar o Token JWT
-  const token = jwt.sign(
-    { userId: user.id, email: user.email, role: user.role }, // Informações que vão no token
-    process.env.JWT_SECRET as string, // Chave secreta para assinar o token
-    { expiresIn: "24h" } // O token expira em 24 horas
-  );
-
-  res.status(200).json({
-    message: "Login bem-sucedido!",
-    token: token,
-    user: { id: user.id, name: user.name, email: user.email },
-  });
 };

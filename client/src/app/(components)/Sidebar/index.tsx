@@ -1,16 +1,16 @@
 "use client";
 
-import { useAppDispatch, useAppSelector } from "@/app/redux";
-import { setIsSidebarCollapsed } from "@/state";
+import { useAppDispatch, useAppSelector } from "@/redux/store";
+import { setIsSidebarCollapsed } from "@/redux/slices";
 import {
   Menu,
   LucideIcon,
   Layout,
-  Archive,
   Clipboard,
   User,
   SlidersHorizontal,
   CircleDollarSign,
+  Truck,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -98,15 +98,16 @@ const Sidebar = () => {
       {/*links*/}
       <div className="flex-grow mt-8">
         <SidebarLink
-          href="/dashboard"
+          href="/"
           icon={Layout}
           label="Dashboard"
           isColapsed={isSidebarCollapsed}
         />
+
         <SidebarLink
-          href="/inventory"
-          icon={Archive}
-          label="Estoque"
+          href="/purchases"
+          icon={Truck}
+          label="Compras"
           isColapsed={isSidebarCollapsed}
         />
         <SidebarLink
