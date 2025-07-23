@@ -1,4 +1,5 @@
 "use strict";
+// Em um novo arquivo, ex: src/controllers/dashboardController.ts
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -9,61 +10,66 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getDashboardMetrics = void 0;
-const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
-const getDashboardMetrics = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.getDashboardReport = void 0;
+const prisma_1 = require("../lib/prisma");
+const zod_1 = require("zod");
+// Schema de validação para as query params
+const reportQuerySchema = zod_1.z.object({
+    startDate: zod_1.z.string().datetime(),
+    endDate: zod_1.z.string().datetime(),
+});
+const getDashboardReport = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
-        console.log("Endpoint /products acessado, lógica a ser refatorada.");
-        res.json([]); // Simplesmente retorne um array vazio por enquanto
-        // const popularProducts = await prisma.products.findMany({
-        //   take: 15,
-        //   orderBy: {
-        //     stockQuantity: "desc",
-        //   },
-        // });
-        // const salesSummary = await prisma.salesSummary.findMany({
-        //   take: 5,
-        //   orderBy: {
-        //     date: "desc",
-        //   },
-        // });
-        // const purchaseSummary = await prisma.purchaseSummary.findMany({
-        //   take: 5,
-        //   orderBy: {
-        //     date: "desc",
-        //   },
-        // });
-        // const expenseSummary = await prisma.expenseSummary.findMany({
-        //   take: 5,
-        //   orderBy: {
-        //     date: "desc",
-        //   },
-        // });
-        // const expenseByCategorySummaryRaw = await prisma.expenseByCategory.findMany(
-        //   {
-        //     take: 5,
-        //     orderBy: {
-        //       date: "desc",
-        //     },
-        //   }
-        // );
-        // const expenseByCategorySummary = expenseByCategorySummaryRaw.map(
-        //   (item) => ({
-        //     ...item,
-        //     amount: item.amount.toString(),
-        //   })
-        // );
-        // res.json({
-        //   popularProducts,
-        //   salesSummary,
-        //   purchaseSummary,
-        //   expenseSummary,
-        //   expenseByCategorySummary,
-        // });
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+        if (!userId) {
+            return res.status(401).json({ error: "Utilizador não autenticado." });
+        }
+        // Validar e extrair as datas da query string
+        const validation = reportQuerySchema.safeParse(req.query);
+        if (!validation.success) {
+            return res.status(400).json({
+                error: "Datas de início e fim são obrigatórias e devem estar no formato ISO.",
+            });
+        }
+        const { startDate, endDate } = validation.data;
+        // Calcular o total de vendas no período
+        const salesData = yield prisma_1.prisma.sale.aggregate({
+            _sum: {
+                totalAmount: true,
+            },
+            where: {
+                userId: userId,
+                deletedAt: null,
+                saleDate: {
+                    gte: new Date(startDate), // gte: Greater than or equal to
+                    lte: new Date(endDate), // lte: Less than or equal to
+                },
+            },
+        });
+        // Calcular o total de compras no período
+        const purchasesData = yield prisma_1.prisma.purchase.aggregate({
+            _sum: {
+                totalCost: true,
+            },
+            where: {
+                userId: userId,
+                deletedAt: null,
+                purchaseDate: {
+                    gte: new Date(startDate),
+                    lte: new Date(endDate),
+                },
+            },
+        });
+        const report = {
+            totalSales: salesData._sum.totalAmount || 0,
+            totalPurchases: purchasesData._sum.totalCost || 0,
+        };
+        res.status(200).json(report);
     }
     catch (error) {
-        res.status(500).json({ error: "Error retrieving dashboard metrics" });
+        console.error("Falha ao gerar o relatório do dashboard:", error);
+        res.status(500).json({ error: "Falha ao gerar o relatório do dashboard." });
     }
 });
-exports.getDashboardMetrics = getDashboardMetrics;
+exports.getDashboardReport = getDashboardReport;

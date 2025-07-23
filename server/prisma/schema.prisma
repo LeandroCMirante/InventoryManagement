@@ -70,6 +70,7 @@ model ProductVariant {
 // A Venda representa a SAÍDA de produtos do estoque.
 model Sale {
   id          String     @id @default(cuid())
+  clientName String?
   saleDate    DateTime   @default(now())
   totalAmount Decimal
   createdAt   DateTime   @default(now())

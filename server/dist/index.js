@@ -15,6 +15,7 @@ const productRoutes_1 = __importDefault(require("./routes/productRoutes"));
 const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
 const expenseRoutes_1 = __importDefault(require("./routes/expenseRoutes"));
 const purchaseRoutes_1 = __importDefault(require("./routes/purchaseRoutes"));
+const salesRoutes_1 = __importDefault(require("./routes/salesRoutes"));
 /*Route Imports*/
 /*Configuration*/
 dotenv_1.default.config();
@@ -28,11 +29,12 @@ app.use(body_parser_1.default.urlencoded({ extended: false }));
 app.use((0, cors_1.default)());
 // /* routes */
 app.use("/api/auth", authRoutes_1.default); // http://localhost:8000/api/auth
-app.use("/dashboard", dashboardRoutes_1.default); // http://localhost:8000/dashboard
+app.use("/api/dashboard", dashboardRoutes_1.default); // http://localhost:8000/dashboard
 app.use("/api/products", productRoutes_1.default); // http://localhost:8000/products
 app.use("/users", userRoutes_1.default); // http://localhost:8000/users
 app.use("/expenses", expenseRoutes_1.default); // http://localhost:8000/expenses
 app.use("/api/purchases", purchaseRoutes_1.default); // http://localhost:8000/purchases
+app.use("/api/sales", salesRoutes_1.default); // http://localhost:8000/purchases
 /* server */
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

@@ -10,6 +10,7 @@ import productRoutes from "./routes/productRoutes";
 import userRoutes from "./routes/userRoutes";
 import expenseRoutes from "./routes/expenseRoutes";
 import purchaseRoutes from "./routes/purchaseRoutes";
+import salesRoutes from "./routes/salesRoutes";
 
 /*Route Imports*/
 
@@ -26,11 +27,12 @@ app.use(cors());
 
 // /* routes */
 app.use("/api/auth", authRoutes); // http://localhost:8000/api/auth
-app.use("/dashboard", dashboardRoutes); // http://localhost:8000/dashboard
+app.use("/api/dashboard", dashboardRoutes); // http://localhost:8000/dashboard
 app.use("/api/products", productRoutes); // http://localhost:8000/products
 app.use("/users", userRoutes); // http://localhost:8000/users
 app.use("/expenses", expenseRoutes); // http://localhost:8000/expenses
 app.use("/api/purchases", purchaseRoutes); // http://localhost:8000/purchases
+app.use("/api/sales", salesRoutes); // http://localhost:8000/purchases
 
 /* server */
 const PORT = process.env.PORT || 3001;

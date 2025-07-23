@@ -117,6 +117,12 @@ const Sidebar = () => {
           isColapsed={isSidebarCollapsed}
         />
         <SidebarLink
+          href="/sales"
+          icon={CircleDollarSign}
+          label="Vendas"
+          isColapsed={isSidebarCollapsed}
+        />
+        {/* <SidebarLink
           href="/users"
           icon={User}
           label="Usuários"
@@ -133,7 +139,7 @@ const Sidebar = () => {
           icon={CircleDollarSign}
           label="Despesas"
           isColapsed={isSidebarCollapsed}
-        />
+        /> */}
       </div>
 
       {/*footer*/}

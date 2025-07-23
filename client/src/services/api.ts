@@ -16,6 +16,7 @@ export interface ProductVariant {
   name: string;
   salePrice: number;
   quantity: number;
+  product: Product;
 }
 
 // Represents the parent product (e.g., "Fruit Juice")
@@ -65,6 +66,39 @@ export interface NewPurchasePayload {
   }[];
 }
 
+export interface Sale {
+  id: string;
+  saleDate: string; // O tipo Date do Prisma é serializado como string em JSON
+  clientName: string | null; // Opcional, pode ser nulo
+  totalAmount: number;
+  items: {
+    id: string;
+    quantity: number;
+    priceAtSale: number;
+    variant: {
+      id: string;
+      name: string;
+      product: {
+        id: string;
+        name: string;
+      };
+    };
+  }[];
+}
+export interface NewSalePayload {
+  clientName?: string;
+  items: {
+    variantId: string;
+    quantity: number;
+    priceAtSale: number;
+  }[];
+}
+
+export interface DashboardReport {
+  totalSales: number;
+  totalPurchases: number;
+}
+
 // --- API SLICE DEFINITION ---
 
 export const api = createApi({
@@ -80,7 +114,7 @@ export const api = createApi({
   }),
 
   reducerPath: "api",
-  tagTypes: ["Product", "Purchase"],
+  tagTypes: ["Product", "Purchase", "Sale", "Report"],
 
   endpoints: (build) => ({
     // --- Auth Endpoints ---
@@ -176,7 +210,15 @@ export const api = createApi({
 
     getPurchases: build.query<Purchase[], void>({
       query: () => "/purchases",
-      providesTags: ["Purchase"],
+      providesTags: (result) =>
+        result
+          ? [
+              // Fornece uma tag para cada compra individual na lista
+              ...result.map(({ id }) => ({ type: "Purchase" as const, id })),
+              // Fornece uma tag geral para a LISTA de compras
+              { type: "Purchase", id: "LIST" },
+            ]
+          : [{ type: "Purchase", id: "LIST" }],
     }),
 
     createPurchase: build.mutation<Purchase, NewPurchasePayload>({
@@ -187,7 +229,83 @@ export const api = createApi({
       }),
       // Após uma nova compra, invalida as tags de Compras e Produtos
       // para que o histórico de compras e a lista de produtos (com novo estoque) sejam atualizados.
-      invalidatesTags: ["Purchase", "Product"],
+      invalidatesTags: ["Purchase", "Product", "Report"],
+    }),
+
+    updatePurchase: build.mutation<
+      Purchase,
+      { purchaseId: string; supplier?: string; shippingCost?: number }
+    >({
+      query: ({ purchaseId, ...body }) => ({
+        url: `/purchases/${purchaseId}`,
+        method: "PUT",
+        body,
+      }),
+      // Invalida a compra específica e a lista geral para forçar a atualização
+      invalidatesTags: (result, error, { purchaseId }) => [
+        { type: "Purchase", id: purchaseId },
+        { type: "Purchase", id: "LIST" },
+        { type: "Product", id: "LIST" },
+      ],
+    }),
+
+    deletePurchase: build.mutation<void, string>({
+      query: (purchaseId) => ({
+        url: `/purchases/${purchaseId}`,
+        method: "DELETE",
+      }),
+      // Invalida a lista de compras para remover o item da UI
+      invalidatesTags: [
+        { type: "Purchase", id: "LIST" },
+        { type: "Product", id: "LIST" },
+      ],
+    }),
+
+    getPurchaseById: build.query<Purchase, string>({
+      query: (id) => `/purchases/${id}`,
+      providesTags: (result, error, id) => [{ type: "Purchase", id }],
+    }),
+
+    // --- Endpoints de Vendas ---
+    getSales: build.query<Sale[], void>({
+      query: () => "/sales",
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ id }) => ({ type: "Sale" as const, id })),
+              { type: "Sale", id: "LIST" },
+            ]
+          : [{ type: "Sale", id: "LIST" }],
+    }),
+
+    createSale: build.mutation<Sale, NewSalePayload>({
+      query: (newSale) => ({
+        url: "/sales",
+        method: "POST",
+        body: newSale,
+      }),
+      // Invalida a lista de vendas e de produtos (por causa do estoque)
+      invalidatesTags: ["Sale", "Product", "Report"],
+    }),
+
+    deleteSale: build.mutation<void, string>({
+      query: (id) => ({
+        url: `/sales/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: [
+        { type: "Sale", id: "LIST" },
+        { type: "Product", id: "LIST" },
+      ],
+    }),
+
+    getDashboardReport: build.query<
+      DashboardReport,
+      { startDate: string; endDate: string }
+    >({
+      query: ({ startDate, endDate }) =>
+        `/dashboard/report?startDate=${startDate}&endDate=${endDate}`,
+      providesTags: ["Report"],
     }),
   }),
 });
@@ -204,4 +322,11 @@ export const {
   useDeleteVariantMutation,
   useGetPurchasesQuery,
   useCreatePurchaseMutation,
+  useUpdatePurchaseMutation,
+  useDeletePurchaseMutation,
+  useGetPurchaseByIdQuery,
+  useGetSalesQuery,
+  useCreateSaleMutation,
+  useDeleteSaleMutation,
+  useGetDashboardReportQuery,
 } = api;

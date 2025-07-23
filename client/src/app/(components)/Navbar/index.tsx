@@ -16,6 +16,7 @@ import { logOut, selectCurrentUser } from "@/redux/slices/authSlice";
 import Link from "next/link";
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { api } from "@/services/api";
 
 // --- Componente do Dropdown do Perfil ---
 // É uma boa prática separar esta lógica complexa num componente próprio.
@@ -28,6 +29,7 @@ const ProfileDropdown = () => {
 
   const handleLogout = () => {
     dispatch(logOut());
+    dispatch(api.util.resetApiState());
     router.push("/login");
   };
 

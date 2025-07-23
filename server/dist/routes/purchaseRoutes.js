@@ -6,5 +6,7 @@ const authMiddleware_1 = require("../middleware/authMiddleware");
 const router = (0, express_1.Router)();
 router.get("/", authMiddleware_1.authMiddleware, purchaseController_1.getPurchases);
 router.post("/", authMiddleware_1.authMiddleware, purchaseController_1.createPurchase);
-// Adicione aqui as rotas POST, PUT, DELETE
+router.put("/:id", authMiddleware_1.authMiddleware, purchaseController_1.updatePurchase);
+router.delete("/:id", authMiddleware_1.authMiddleware, purchaseController_1.deletePurchase);
+router.get("/purchases/:id", authMiddleware_1.authMiddleware, purchaseController_1.getPurchaseById);
 exports.default = router;
