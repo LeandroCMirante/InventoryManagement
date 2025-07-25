@@ -1,18 +1,12 @@
-// Ficheiro: src/app/layout.tsx
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google"; // Suas fontes
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import "./globals.css";
-import StoreProvider from "@/redux/store"; // Importe o seu provider
-
-const geistSans = Geist({
-  /* ... */
-});
-const geistMono = Geist_Mono({
-  /* ... */
-});
+import StoreProvider from "@/redux/store";
 
 export const metadata: Metadata = {
-  /* ... */
+  title: "Inventory Management",
+  description: "Sistema de gestão de inventário",
 };
 
 export default function RootLayout({
@@ -21,11 +15,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.className} ${geistMono.className} antialiased`}
-      >
-        {/* O StoreProvider envolve toda a aplicação */}
+    <html lang="pt" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+      <body className={GeistSans.className}>
         <StoreProvider>{children}</StoreProvider>
       </body>
     </html>
