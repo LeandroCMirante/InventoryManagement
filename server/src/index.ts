@@ -14,8 +14,7 @@ import salesRoutes from "./routes/salesRoutes";
 
 const corsOptions = {
   // 2. Substitua pela URL real do seu frontend na Vercel!
-  origin:
-    "https://inventory-management-104b906do-leandro-mirantes-projects.vercel.app",
+  origin: "https://inventory-management-psi-blush.vercel.app/",
   optionsSuccessStatus: 200,
 };
 
