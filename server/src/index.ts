@@ -12,7 +12,12 @@ import expenseRoutes from "./routes/expenseRoutes";
 import purchaseRoutes from "./routes/purchaseRoutes";
 import salesRoutes from "./routes/salesRoutes";
 
-/*Route Imports*/
+const corsOptions = {
+  // 2. Substitua pela URL real do seu frontend na Vercel!
+  origin:
+    "https://inventory-management-104b906do-leandro-mirantes-projects.vercel.app",
+  optionsSuccessStatus: 200,
+};
 
 /*Configuration*/
 dotenv.config();
@@ -23,7 +28,7 @@ app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" }));
 app.use(morgan("common"));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cors());
+app.use(cors(corsOptions));
 
 // /* routes */
 app.use("/api/auth", authRoutes); // http://localhost:8000/api/auth
